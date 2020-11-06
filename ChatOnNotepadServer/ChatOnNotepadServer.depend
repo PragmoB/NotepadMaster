@@ -1,0 +1,7 @@
+# depslib dependency file v1.0
+1590507756 source:d:\플래그모\myresults\c++ project\chatonnotepad\chatonnotepadserver\main.cpp
+	<iostream>
+	<windows.h>
+	<conio.h>
+	<vector>
+
