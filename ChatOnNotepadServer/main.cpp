@@ -8,6 +8,7 @@
 using namespace std;
 
 vector<SOCKET> Clients;
+bool now_sending = false;
 
 unsigned int WINAPI active(void* arg);
 void update()
@@ -18,17 +19,20 @@ void update()
     if(gethostname(hostname, 50) == 0)
         cout << "현재 호스트 : " << inet_ntoa(*(struct in_addr*)gethostbyname(hostname)->h_addr_list[0]) << endl << endl;
 
-    cout << "소켓 번호 리스트" << endl;
+    cout << "소켓 번호 리스트";
     for(int i = 0;i < Clients.size();i++)
     {
         if(i % 5 == 0) // 소켓번호 5개마다 자리 띄움.
         {
-            cout << endl;
+            cout << endl << endl;
         }
         cout << Clients[i] << " | ";
     }
     cout << endl << endl;
-    cout << "타겟 소켓번호 : ";
+    if(now_sending)
+        cout << "입력 도중 접속이 들어왔습니다." << endl << "-exit을 입력후 소켓 번호를 입력해주세요. : ";
+    else
+        cout << "타겟 소켓번호 : ";
 }
 
 int main()
@@ -126,7 +130,9 @@ unsigned int WINAPI active(void* arg)
 
         while(TRUE)
         {
+            now_sending = true;
             cin.getline(buff_send, BUFF_SIZE);
+            now_sending = false;
 
             if(!strcmp(buff_send, "-exit")) // 다른 소켓 번호를 선택하기 위해 탈출.
                 break;

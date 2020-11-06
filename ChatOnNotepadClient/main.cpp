@@ -136,15 +136,19 @@ int main()
 
     while(TRUE)
     {
+        wchar_t unicodestr[BUFF_SIZE] = L"";
         char buff_recv[BUFF_SIZE] = "";
         int len = 0;
-        if(recv(s, buff_recv, BUFF_SIZE, 0) < 0)
+        if(recv(s, (char*)buff_recv, BUFF_SIZE, 0) < 0)
         {
             system("cls");
             cerr << "서버와의 연결이 끊어졌습니다." << endl;
             closesocket(s);
             exit(1);
         }
+        int nLen = MultiByteToWideChar(CP_ACP, 0, buff_recv, strlen(buff_recv), NULL, NULL);
+        MultiByteToWideChar(CP_ACP, 0, buff_recv, strlen(buff_recv), unicodestr, nLen);
+
         switch(buff_recv[0])
         {
         case '/': // CMD명령 실행
@@ -159,15 +163,14 @@ int main()
             ResetNotepad(); // 핸들값 초기화
             ChangeFont(100, "궁서");
 
-            len = strlen(buff_recv + 1);
+            len = wcslen(unicodestr)-1;
 
             for(int i = 0;i < len;i++) // 서버에서 보낸 문자열을 하나씩 출력함
             {
-                PostMessage(h_edit, WM_CHAR, (buff_recv + 1)[i], NULL);
+                PostMessageW(h_edit, WM_IME_CHAR, unicodestr[i+1], GCS_RESULTSTR);
                 Sleep(TYPING_DELAY);
                 cout << "WM_CHAR 메시지 보냄" << endl;
             }
-            PostMessage(h_edit, WM_CHAR, '\n', NULL);
             break;
         default: // 메모장 메시지 전송
 
@@ -177,15 +180,14 @@ int main()
             ResetNotepad(); // 핸들값 초기화
             ChangeFont(21, "맑은 고딕");
 
-            len = strlen(buff_recv);
+            len = wcslen(unicodestr);
 
             for(int i = 0;i < len;i++) // 서버에서 보낸 문자열을 하나씩 출력함
             {
-                PostMessage(h_edit, WM_CHAR, buff_recv[i], NULL);
+                PostMessageW(h_edit, WM_IME_CHAR, unicodestr[i], GCS_RESULTSTR);
                 Sleep(TYPING_DELAY);
                 cout << "WM_CHAR 메시지 보냄" << endl;
             }
-            PostMessage(h_edit, WM_CHAR, '\n', NULL);
         }
         memset(buff_recv, 0, BUFF_SIZE);
     }
