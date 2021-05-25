@@ -5,10 +5,12 @@
 	<tchar.h>
 	<conio.h>
 
-1604683602 source:d:\플래그모\myresults\c++ project\chatonnotepad\chatonnotepadclient\main.cpp
+1621909961 source:d:\플래그모\myresults\c++ project\chatonnotepad\chatonnotepadclient\main.cpp
 	<iostream>
 	<windows.h>
 	<tchar.h>
 	<conio.h>
 	<tlhelp32.h>
+	<string>
+	<cstdio>
 

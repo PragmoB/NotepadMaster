@@ -3,6 +3,8 @@
 #include <tchar.h>
 #include <conio.h>
 #include <tlhelp32.h>
+#include <string>
+#include <cstdio>
 
 #define BUFF_SIZE 2000
 #define TYPING_DELAY 150
@@ -75,6 +77,17 @@ void ChangeFont(int font_size, const char* font_name)
 
     ReleaseDC(h_edit, hdc);
 }
+
+void replaceAll(string& str, char* target, char* result)
+{
+    string::size_type idx = str.find(target);
+    while(idx != string::npos)
+    {
+        str.replace(idx, strlen(target), result);
+        idx = str.find(target);
+    }
+
+}
 int main()
 {
 
@@ -146,6 +159,16 @@ int main()
             closesocket(s);
             exit(1);
         }
+
+        // 이스케이프 시퀸스 기능
+        string temp = buff_recv;
+        replaceAll(temp, "\\n", "\n");
+        replaceAll(temp, "\\a", "\a");
+        replaceAll(temp, "\\b", "\b");
+        replaceAll(temp, "\\\\", "\\");
+
+        strcpy(buff_recv, temp.c_str());
+
         int nLen = MultiByteToWideChar(CP_ACP, 0, buff_recv, strlen(buff_recv), NULL, NULL);
         MultiByteToWideChar(CP_ACP, 0, buff_recv, strlen(buff_recv), unicodestr, nLen);
 
