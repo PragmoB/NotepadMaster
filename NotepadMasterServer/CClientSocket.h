@@ -6,7 +6,7 @@ class CNotepadMasterServerDlg;
 class CClientSocket :
 	public CSocket
 {
-public:
+private:
 	CNotepadMasterServerDlg* main_dlg;
 public:
 	CClientSocket(CNotepadMasterServerDlg* main_dlg);

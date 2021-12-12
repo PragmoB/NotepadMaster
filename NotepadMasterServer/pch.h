@@ -11,5 +11,6 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "framework.h"
 #include <afxcontrolbars.h>
+#include <afxcontrolbars.h>
 
 #endif //PCH_H

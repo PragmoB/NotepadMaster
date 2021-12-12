@@ -188,6 +188,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CClient.h" />
+    <ClInclude Include="CClientKeylog.h" />
     <ClInclude Include="CClientSocket.h" />
     <ClInclude Include="CListenSocket.h" />
     <ClInclude Include="definition.h" />
@@ -200,6 +201,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CClient.cpp" />
+    <ClCompile Include="CClientKeylog.cpp" />
     <ClCompile Include="CClientSocket.cpp" />
     <ClCompile Include="CListenSocket.cpp" />
     <ClCompile Include="NotepadMasterServer.cpp" />

