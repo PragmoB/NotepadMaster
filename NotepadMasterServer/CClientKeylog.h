@@ -36,4 +36,6 @@ public:
 	CString m_client_keylog_ko;
 	void ScanKeylog(PDUKeylog* pdu);
 	afx_msg void OnClickedRadioKeylogEn(UINT uiID);
+	afx_msg void OnVscrollEditClientKeylog();
+	virtual BOOL OnInitDialog();
 };

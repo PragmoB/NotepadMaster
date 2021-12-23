@@ -7,6 +7,8 @@
 
 #include "definition.h"
 
+const UINT NORMAL_FONT_SIZE = 25;
+
 // CClient 대화 상자
 
 class CClient : public CDialogEx
@@ -40,4 +42,17 @@ public:
 	void UpdateKeylog(UINT index);
 	afx_msg void OnSelchangeTabClientKeylog(NMHDR *pNMHDR, LRESULT *pResult);
 	virtual BOOL OnInitDialog();
+	CComboBox m_combo_font;
+	afx_msg void OnSelchangeComboFont();
+	int m_edit_font_size;
+	CSpinButtonCtrl m_spin_font_size;
+	BOOL m_check_font_italics;
+	BOOL m_check_font_bold;
+	void UpdateFont();
+	LOGFONT m_font;
+	afx_msg void OnChangeEditFontSize();
+	afx_msg void OnDeltaposSpinFontSize(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnBnClickedCheckFontBold();
+	afx_msg void OnBnClickedCheckFontItalics();
+	afx_msg void OnClickedRadioMsgKind(UINT uid);
 };
