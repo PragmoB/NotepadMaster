@@ -130,12 +130,6 @@ int main()
 			closesocket(s);
 			exit(1);
 		}
-		// 이스케이프 시퀸스 기능
-		//string temp = buff_recv;
-		//replaceAll(temp, "\\n", "\n");
-
-		//strcpy_s(buff_recv, temp.c_str());
-
 
 		int nLen = 0;
 
