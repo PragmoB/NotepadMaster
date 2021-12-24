@@ -344,6 +344,8 @@ void CClient::OnClickedRadioMsgKind(UINT uid)
 		GetDlgItem(IDC_CHECK_FONT_ITALICS)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CHECK_FONT_UNDERLINED)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CHECK_FONT_STRIKE)->EnableWindow(FALSE);
+		GetDlgItem(IDC_EDIT_COMMAND_DELAY)->EnableWindow(FALSE);
+		GetDlgItem(IDC_SPIN_COMMAND_DELAY)->EnableWindow(FALSE);
 		GetDlgItem(IDC_EDIT_COMMAND)->SetFont(GetFont()); // 메시지 입력창을 mfc 기본 폰트로 설정
 		break;
 
@@ -355,6 +357,8 @@ void CClient::OnClickedRadioMsgKind(UINT uid)
 		GetDlgItem(IDC_CHECK_FONT_ITALICS)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CHECK_FONT_UNDERLINED)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CHECK_FONT_STRIKE)->EnableWindow(TRUE);
+		GetDlgItem(IDC_EDIT_COMMAND_DELAY)->EnableWindow(TRUE);
+		GetDlgItem(IDC_SPIN_COMMAND_DELAY)->EnableWindow(TRUE);
 		UpdateFont(); // 폰트를 유저가 설정한대로 되돌림
 	}
 }
