@@ -130,7 +130,6 @@ int main()
 			closesocket(s);
 			exit(1);
 		}
-
 		int nLen = 0;
 
 		switch (buff_recv[0])
