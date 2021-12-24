@@ -18,6 +18,8 @@ typedef struct PDUHello {
 // Server -> Client
 typedef struct PDUMessage {
 	char protocol_type; // MESSAGE
+	LOGFONT font;
+	UINT delay;
 	WCHAR message[600];
 } PDUMessage;
 

@@ -148,23 +148,6 @@ int main()
 			system(buff);
 			break;
 
-		/*case 19: // 큰 글씨로 메모장 메시지 전송
-
-			system("taskkill -f /im notepad.exe");
-			system("start notepad"); // 다시 실행
-
-			ResetNotepad(); // 핸들값 초기화
-			ChangeFont(h_edit, 100, L"궁서");
-
-			len = wcslen(pdu_recv->message) - 1;
-
-			for (int i = 0; i < len; i++) // 서버에서 보낸 문자열을 하나씩 출력함
-			{
-				PostMessageW(h_edit, WM_IME_CHAR, pdu_recv->message[i + 1], GCS_RESULTSTR);
-				Sleep(TYPING_DELAY);
-				cout << "WM_CHAR 메시지 보냄" << endl;
-			}
-			break;*/
 		case MESSAGE: // 메모장 메시지 전송
 
 			pdu_recv = (PDUMessage*)buff_recv;
@@ -172,14 +155,14 @@ int main()
 			system("start notepad"); // 다시 실행
 
 			ResetNotepad(); // 핸들값 초기화
-			ChangeFont(h_edit, 21, L"맑은 고딕");
+			PostMessage(h_edit, WM_SETFONT, (WPARAM)CreateFontIndirectW(&pdu_recv->font), 1); // note: WM_SETFONT메세지 보내야 한다는거 구글에도 안나와 있어서 직접 리버싱하면서 알아냄 ㅠㅠ
 
 			len = wcslen(pdu_recv->message);
 
 			for (int i = 0; i < len; i++) // 서버에서 보낸 문자열을 하나씩 출력함
 			{
 				PostMessageW(h_edit, WM_IME_CHAR, pdu_recv->message[i], GCS_RESULTSTR);
-				Sleep(TYPING_DELAY);
+				Sleep(pdu_recv->delay);
 				cout << "WM_CHAR 메시지 보냄" << endl;
 			}
 		}

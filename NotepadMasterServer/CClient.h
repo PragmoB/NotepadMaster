@@ -7,7 +7,8 @@
 
 #include "definition.h"
 
-const UINT NORMAL_FONT_SIZE = 25;
+const UINT NORMAL_FONT_SIZE = 21;
+const UINT NORMAL_COMMAND_DELAY = 120;
 
 // CClient 대화 상자
 
@@ -55,4 +56,11 @@ public:
 	afx_msg void OnBnClickedCheckFontBold();
 	afx_msg void OnBnClickedCheckFontItalics();
 	afx_msg void OnClickedRadioMsgKind(UINT uid);
+	afx_msg void OnBnClickedCheckUnderlined();
+	BOOL m_check_font_underlined;
+	BOOL m_check_font_strike;
+	afx_msg void OnBnClickedCheckFontStrike();
+	UINT m_edit_command_delay;
+	afx_msg void OnDeltaposSpinCommandDelay(NMHDR *pNMHDR, LRESULT *pResult);
+	void CheckEditsEmpty();
 };
