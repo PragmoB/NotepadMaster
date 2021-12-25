@@ -11,5 +11,6 @@ private:
 public:
 	CClientSocket(CNotepadMasterServerDlg* main_dlg);
 	virtual void OnReceive(int nErrorCode);
+	virtual void OnClose(int nErrorCode);
 };
 

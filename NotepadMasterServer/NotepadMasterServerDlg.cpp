@@ -116,8 +116,9 @@ BOOL CNotepadMasterServerDlg::OnInitDialog()
 	CRect rect;
 	m_list_clients.GetClientRect(&rect);
 	m_list_clients.InsertColumn(0, TEXT("no"), LVCFMT_LEFT, 50);
-	m_list_clients.InsertColumn(1, TEXT("IP"), LVCFMT_LEFT, 150);
-	m_list_clients.InsertColumn(2, TEXT("Internal IP"), LVCFMT_LEFT, 150);
+	m_list_clients.InsertColumn(1, TEXT("IP"), LVCFMT_LEFT, 130);
+	m_list_clients.InsertColumn(2, TEXT("Internal IP"), LVCFMT_LEFT, 130);
+	m_list_clients.InsertColumn(3, TEXT("Status"), LVCFMT_LEFT, 130);
 
 	char hostname[20] = "";
 	if (gethostname(hostname, 50) == 0)
@@ -206,10 +207,21 @@ void CNotepadMasterServerDlg::ClientAccept()
 	m_list_clients.InsertItem(index, temp , 0);
 	m_list_clients.SetItemText(index, 1, IP);
 	m_list_clients.SetItemText(index, 2, L"Internal IP");
+	m_list_clients.SetItemText(index, 3, L"Connected");
 
 	m_client_list.push_back(newview);
 	m_client_list[index]->socket = newsocket;
 }
+
+// 연결이 끊어졌으면 해당 클라이언트에 끊어졌다고 상태 표시
+void CNotepadMasterServerDlg::ClientClose(CClientSocket* pSock)
+{
+	// TODO: 여기에 구현 코드 추가.
+	UINT index;
+	for (index = 0; m_client_list[index]->socket != pSock; index++);
+	m_list_clients.SetItemText(index, 3, L"Closed");
+}
+
 
 /* 클라이언트 조종 화면을 띄워줌 */
 void CNotepadMasterServerDlg::OnDblclkListClients(NMHDR *pNMHDR, LRESULT *pResult)
