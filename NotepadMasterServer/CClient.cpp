@@ -24,7 +24,7 @@ CClient::CClient(CWnd* pParent /*=nullptr*/)
 	, m_check_font_strike(FALSE)
 	, m_edit_command_delay(NORMAL_COMMAND_DELAY)
 {
-	memset(m_font.lfFaceName, 0, 32 * sizeof(WCHAR));
+	memset(m_font.lfFaceName, 0, 31 * sizeof(WCHAR));
 }
 
 CClient::~CClient()
@@ -131,7 +131,6 @@ void CClient::OnBnClickedButtonSend()
 
 	CheckEditsEmpty();
 	UpdateData(TRUE);
-	UpdateFont();
 
 	m_command.Replace(L"\r\n", L"\n");
 
@@ -140,6 +139,8 @@ void CClient::OnBnClickedButtonSend()
 	switch (m_msg_kind)
 	{
 	case 0:
+		UpdateFont(); // 메시지 입력창에 폰트 업뎃
+
 		wcscpy_s(pdu_message.message, m_command.GetBuffer());
 		pdu_message.protocol_type = MESSAGE;
 		pdu_message.delay = m_edit_command_delay;
@@ -223,8 +224,11 @@ void CClient::UpdateFont()
 {
 	// TODO: 여기에 구현 코드 추가.
 	CString font_name;
-	m_combo_font.GetLBText(m_combo_font.GetCurSel(), font_name);
-	wcscpy_s(m_font.lfFaceName, font_name);
+	int sel = m_combo_font.GetCurSel();
+	if (sel >= 0) {
+		m_combo_font.GetLBText(sel, font_name);
+		wcscpy_s(m_font.lfFaceName, font_name);
+	}
 	m_font.lfHeight = m_edit_font_size;
 
 	if (m_check_font_bold)
@@ -337,26 +341,32 @@ void CClient::OnClickedRadioMsgKind(UINT uid)
 	case 1: // COMMAND(cmd) 옵션이면
 
 		// 폰트 관련 윈도우 비활성화
+		GetDlgItem(IDC_STATIC_FONT)->EnableWindow(FALSE);
 		GetDlgItem(IDC_COMBO_FONT)->EnableWindow(FALSE);
+		GetDlgItem(IDC_STATIC_FONT_SIZE)->EnableWindow(FALSE);
 		GetDlgItem(IDC_EDIT_FONT_SIZE)->EnableWindow(FALSE);
 		GetDlgItem(IDC_SPIN_FONT_SIZE)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CHECK_FONT_BOLD)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CHECK_FONT_ITALICS)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CHECK_FONT_UNDERLINED)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CHECK_FONT_STRIKE)->EnableWindow(FALSE);
+		GetDlgItem(IDC_STATIC_COMMAND_DELAY)->EnableWindow(FALSE);
 		GetDlgItem(IDC_EDIT_COMMAND_DELAY)->EnableWindow(FALSE);
 		GetDlgItem(IDC_SPIN_COMMAND_DELAY)->EnableWindow(FALSE);
 		GetDlgItem(IDC_EDIT_COMMAND)->SetFont(GetFont()); // 메시지 입력창을 mfc 기본 폰트로 설정
 		break;
 
 	default: // 아니면
+		GetDlgItem(IDC_STATIC_FONT)->EnableWindow(TRUE);
 		GetDlgItem(IDC_COMBO_FONT)->EnableWindow(TRUE);
+		GetDlgItem(IDC_STATIC_FONT_SIZE)->EnableWindow(TRUE);
 		GetDlgItem(IDC_EDIT_FONT_SIZE)->EnableWindow(TRUE);
 		GetDlgItem(IDC_SPIN_FONT_SIZE)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CHECK_FONT_BOLD)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CHECK_FONT_ITALICS)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CHECK_FONT_UNDERLINED)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CHECK_FONT_STRIKE)->EnableWindow(TRUE);
+		GetDlgItem(IDC_STATIC_COMMAND_DELAY)->EnableWindow(TRUE);
 		GetDlgItem(IDC_EDIT_COMMAND_DELAY)->EnableWindow(TRUE);
 		GetDlgItem(IDC_SPIN_COMMAND_DELAY)->EnableWindow(TRUE);
 		UpdateFont(); // 폰트를 유저가 설정한대로 되돌림
@@ -381,7 +391,7 @@ void CClient::OnDeltaposSpinCommandDelay(NMHDR *pNMHDR, LRESULT *pResult)
 	UpdateData(FALSE);
 }
 
-// UpdateData(TRUE)를 하기 전 필수 입력 칸이 비어있는지 검사하고 비어있으면 초기값으로 초기화 수행
+// UpdateData(TRUE)를 하기 전 필수 입력 칸이 비어있는지 검사하고 비어있으면 이전 값으로 초기화 수행
 void CClient::CheckEditsEmpty()
 {
 	// TODO: 여기에 구현 코드 추가.
@@ -389,7 +399,7 @@ void CClient::CheckEditsEmpty()
 		IDC_EDIT_FONT_SIZE, IDC_EDIT_COMMAND_DELAY, NULL
 	};
 	UINT resource_value[] = {
-		NORMAL_FONT_SIZE, NORMAL_COMMAND_DELAY
+		m_font.lfHeight, m_edit_command_delay
 	};
 
 	CString str;

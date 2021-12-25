@@ -86,7 +86,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\NotepadMasterServer.ico">
+    <Image Include="res\doll.ico">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="res\icon1.ico">
       <Filter>리소스 파일</Filter>
     </Image>
   </ItemGroup>
