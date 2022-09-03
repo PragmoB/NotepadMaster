@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NotepadMasterCilent.cpp">
+    <ClCompile Include="util.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="util.cpp">
+    <ClCompile Include="NotepadMasterClient.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

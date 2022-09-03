@@ -38,4 +38,5 @@ public:
 	afx_msg void OnClickedRadioKeylogEn(UINT uiID);
 	afx_msg void OnVscrollEditClientKeylog();
 	virtual BOOL OnInitDialog();
+	void SaveKeylog(CString IP, int index);
 };
