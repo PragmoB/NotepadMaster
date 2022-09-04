@@ -65,5 +65,7 @@ public:
 	afx_msg void OnDeltaposSpinCommandDelay(NMHDR *pNMHDR, LRESULT *pResult);
 	void CheckEditsEmpty();
 	void CClient::OnBnClickedButtonSaveKeylogs();
-	void SaveKeylogs();
+	void SaveKeylogs(__time64_t timestamp);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	void SendCommand();
 };

