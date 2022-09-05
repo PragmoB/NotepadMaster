@@ -26,7 +26,7 @@ Setup
 
 외부망이면.. 사용하는 공유기에서 포트포워딩 설정을 따로 해줘야합니다
 
-![LG U+ 공유기 설정 페이지](https://user-images.githubusercontent.com/67177785/188458677-763d56ce-822c-47f4-bf49-a2bec57fbce9.PNG)  
+![LG U+ 공유기 설정 페이지](https://user-images.githubusercontent.com/67177785/188460770-28001432-a756-4909-8efe-78743f995dbb.PNG)
 **[그림3] LG U+ 공유기 설정 페이지**
 
 통신사마다 설정방법이 조금씩 차이가 나지만 일반적으로 공유기 설정 페이지에 들어가 관리자 계정으로 로그인 후 설정할 수 있습니다
